@@ -38,7 +38,7 @@ export default function HomePage() {
         </button>
       </Link>
       {goals.map((goal) => (
-        <Link key={goal.id} href="/status">
+        <Link key={goal.id} href={`/status?id=${goal.id}`}>
           <GoalCard
             title={goal.goal_text}
             status={goal.status}
