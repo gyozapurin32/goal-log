@@ -5,23 +5,29 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import GoalCard from "@/components/goal/GoalCard";
 import { useRouter } from "next/navigation";
+
 type Goal = {
   id: string;
   goal_text: string;
   status: string;
+  goal_date: string;
   display_order: number;
 };
-export default function HomePage() {
-  const [groupName, setGroupName] = useState("");
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const router = useRouter();
-  const getUser = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    console.log(user);
-  };
+type Member = {
+  id: string;
+  display_name: string;
+  goals: Goal[];
+};
+
+export default function HomePage() {
+  const router = useRouter();
+
+  const [groupName, setGroupName] = useState("");
+  const [members, setMembers] = useState<Member[]>([]);
+  const [userId, setUserId] = useState("");
+
+  // 初回だけプロフィール作成
   const createProfile = async () => {
     const {
       data: { user },
@@ -29,72 +35,31 @@ export default function HomePage() {
 
     if (!user) return;
 
-    // 既にプロフィールがあるか確認
-    const { data: profile, error: selectError } = await supabase
+    const { data: profile } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .maybeSingle();
 
-    console.log("profile:", profile);
-    console.log("select error:", selectError);
-
     if (profile) return;
 
-    // なければ作成
-    const { error } = await supabase
-      .from("profiles")
-      .insert({
-        id: user.id,
-        display_name:
-          user.user_metadata.full_name ??
-          user.user_metadata.name ??
-          "ユーザー",
-      });
-
-    if (error) {
-      alert(error.message);
-      console.error(error);
-    } else {
-      console.log("プロフィール作成成功");
-    }
+    await supabase.from("profiles").insert({
+      id: user.id,
+      display_name:
+        user.user_metadata.full_name ??
+        user.user_metadata.name ??
+        "ユーザー",
+    });
   };
-  const fetchGoals = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
-    console.log("user:", user);
+  const fetchHome = async () => {
 
-    if (!user) {
-      console.log("ログインしていません");
-      return;
-    }
-
-    const today = new Date().toISOString().split("T")[0];
-
-
-    const { data, error } = await supabase
-      .from("goals")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("goal_date", today)
-      .order("display_order");
-    console.log("data:", data);
-    console.log("error:", error);
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    setGoals(data);
-  };
-  const fetchGroup = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) return;
+    setUserId(user.id);
 
     // 自分のプロフィール取得
     const { data: profile } = await supabase
@@ -103,75 +68,105 @@ export default function HomePage() {
       .eq("id", user.id)
       .single();
 
-    if (!profile?.group_id) return;
+    // グループ未所属ならsetupへ
+    if (!profile?.group_id) {
+      router.push("/group/setup");
+      return;
+    }
 
-    // グループ名取得
+    // グループ取得
     const { data: group } = await supabase
       .from("groups")
-      .select("name")
+      .select("*")
       .eq("id", profile.group_id)
       .single();
 
     if (group) {
       setGroupName(group.name);
     }
-  };
+
+    // メンバー取得
+    const { data, error } = await supabase
+      .from("profiles")
+      .select(`
+    id,
+    display_name,
+    goals(
+      id,
+      goal_text,
+      status,
+      goal_date,
+      display_order
+    )
+  `)
+      .eq("group_id", profile.group_id);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+    const today = new Date().toISOString().split("T")[0];
+
+    const members: Member[] = data.map((member) => ({
+      ...member,
+      goals: member.goals
+        .filter((goal) => goal.goal_date === today)
+        .sort((a, b) => a.display_order - b.display_order),
+    }));
+
+    setMembers(members);
+
+  }
   useEffect(() => {
     const init = async () => {
       await createProfile();
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("group_id")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile?.group_id) {
-        router.push("/group/setup");
-        return;
-      }
-
-      await fetchGroup();
-      await fetchGoals();
+      await fetchHome();
     };
 
     init();
   }, []);
+
   return (
     <main className="max-w-md mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-2">GoalLog</h1>
+      <h1 className="text-2xl font-bold mb-2">
+        GoalLog
+      </h1>
 
       <Link href="/group">
         <button className="mb-6 text-blue-600 font-semibold">
-          {groupName}
+          🏆 {groupName}
         </button>
       </Link>
-      {goals.map((goal) => (
-        <Link key={goal.id} href={`/status?id=${goal.id}`}>
-          <GoalCard
-            title={goal.goal_text}
-            status={goal.status}
-          />
-        </Link>
-      ))}
-      {goals.length < 3 ? (
-        <Link href="/goal">
-          <button className="w-full mt-6 bg-blue-500 text-white py-3 rounded-lg">
-            ＋目標を追加
-          </button>
-        </Link>
-      ) : (
-        <p className="mt-6 text-center text-gray-500">
-          今日の目標は登録済みです！
-        </p>
-      )}
 
+      {members.map((member) => (
+        <div
+          key={member.id}
+          className="mb-8"
+        >
+          <h2 className="font-bold text-lg mb-3">
+            👤 {member.display_name}
+          </h2>
+
+
+          {member.goals.map((goal) =>
+            member.id === userId ? (
+              <Link key={goal.id} href={`/status?id=${goal.id}`}>
+                <GoalCard
+                  title={goal.goal_text}
+                  status={goal.status}
+                />
+              </Link>
+            ) : (
+              <GoalCard
+                key={goal.id}
+                title={goal.goal_text}
+                status={goal.status}
+              />
+            )
+          )}
+
+        </div>
+      ))}
     </main>
   );
 }
