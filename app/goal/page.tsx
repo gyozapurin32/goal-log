@@ -60,7 +60,8 @@ export default function GoalPage() {
     alert("保存しました！");
     router.push("/home");
   };
-  const [goals, setGoals] = useState([""]);
+  const [existingGoals, setExistingGoals] = useState<Goal[]>([]);
+  const [goals, setGoals] = useState<string[]>([]);
   return (
     <main className="p-6">
 

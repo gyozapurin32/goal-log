@@ -115,12 +115,18 @@ export default function HomePage() {
     }
     const today = new Date().toISOString().split("T")[0];
 
-    const members: Member[] = data.map((member) => ({
-      ...member,
-      goals: member.goals
-        .filter((goal) => goal.goal_date === today)
-        .sort((a, b) => a.display_order - b.display_order),
-    }));
+    const members: Member[] = data
+      .map((member) => ({
+        ...member,
+        goals: member.goals
+          .filter((goal) => goal.goal_date === today)
+          .sort((a, b) => a.display_order - b.display_order),
+      }))
+      .sort((a, b) => {
+        if (a.id === user.id) return -1;
+        if (b.id === user.id) return 1;
+        return 0;
+      });
 
     setMembers(members);
 
@@ -132,66 +138,110 @@ export default function HomePage() {
     };
 
     init();
+
+    const channel = supabase
+      .channel("goals-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "goals",
+        },
+        () => {
+          fetchHome();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return (
-    <main className="max-w-md mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-2">
-        GoalLog
-      </h1>
-      <button
-        onClick={logout}
-        className="text-sm text-red-500"
-      >
-        ログアウト
-      </button>
+    <main className="min-h-screen bg-gray-100">
+      <div className="max-w-md mx-auto p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">
+            GoalLog
+          </h1>
 
-      <Link href="/group">
-        <button className="mb-6 text-blue-600 font-semibold">
-          🏆 {groupName}
-        </button>
-      </Link>
-
-      {members.map((member) => (
-        <div
-          key={member.id}
-          className="mb-8"
-        >
-          <h2 className="font-bold text-lg mb-3">
-            👤 {member.display_name}
-          </h2>
-
-
-          {member.goals.map((goal) =>
-            member.id === userId ? (
-              <Link key={goal.id} href={`/status?id=${goal.id}`}>
-                <GoalCard
-                  title={goal.goal_text}
-                  status={goal.status}
-                />
-              </Link>
-            ) : (
-              <GoalCard
-                key={goal.id}
-                title={goal.goal_text}
-                status={goal.status}
-              />
-            )
-          )}
-          {myGoals.length < 3 ? (
-            <Link href="/goal">
-              <button className="w-full mt-6 bg-blue-500 text-white py-3 rounded-lg">
-                ＋目標を追加
-              </button>
-            </Link>
-          ) : (
-            <p className="mt-6 text-center text-gray-500">
-              今日の目標は登録済みです！
-            </p>
-          )}
-
+          <button
+            onClick={logout}
+            className="text-sm text-red-500"
+          >
+            ログアウト
+          </button>
         </div>
-      ))}
+
+        <Link href="/group">
+          <div className="bg-white rounded-xl shadow p-4 mb-6 cursor-pointer hover:bg-gray-50">
+            <p className="text-sm text-gray-500">
+              あなたのグループ
+            </p>
+
+            <p className="text-lg font-bold">
+              🏆 {groupName}
+            </p>
+          </div>
+        </Link>
+
+        {members.map((member) => (
+          <div
+            key={member.id}
+            className={`rounded-xl shadow p-4 mb-6 border ${member.id === userId
+              ? "bg-blue-50 border-blue-300"
+              : "bg-white"
+              }`}
+          >
+            <h2 className="font-bold text-lg mb-3">
+              👤 {member.display_name}
+            </h2>
+
+
+            {member.goals.length === 0 ? (
+              <p className="text-gray-400 text-sm">
+                今日はまだ目標を登録していません
+              </p>
+            ) : (
+              member.goals.map((goal) =>
+                member.id === userId ? (
+                  <Link key={goal.id} href={`/status?id=${goal.id}`}>
+                    <GoalCard
+                      title={goal.goal_text}
+                      status={goal.status}
+                    />
+                  </Link>
+                ) : (
+                  <GoalCard
+                    key={goal.id}
+                    title={goal.goal_text}
+                    status={goal.status}
+                  />
+                )
+              )
+            )}
+            {member.id === userId && (
+              myGoals.length < 3 ? (
+                <Link href="/goal">
+                  <button className="w-full mt-4 bg-blue-500 text-white py-3 rounded-lg">
+                    ＋目標を追加
+                  </button>
+                </Link>
+              ) : (
+                <p className="mt-4 text-center text-gray-500 text-sm">
+                  今日の目標は登録済みです！
+                </p>
+              )
+            )}
+
+
+          </div>
+        ))}
+
+
+      </div >
     </main>
   );
 }
