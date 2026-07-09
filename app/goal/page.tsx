@@ -3,8 +3,10 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useState } from "react";
 import { STATUS } from "@/lib/status";
+import { useRouter } from "next/navigation";
 
 export default function GoalPage() {
+  const router = useRouter();
 
   const saveGoals = async () => {
     const {

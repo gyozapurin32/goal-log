@@ -21,11 +21,19 @@ type Member = {
 };
 
 export default function HomePage() {
+  const logout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+  };
+
   const router = useRouter();
 
   const [groupName, setGroupName] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
   const [userId, setUserId] = useState("");
+  const myGoals =
+    members.find((member) => member.id === userId)?.goals ?? [];
+
 
   // 初回だけプロフィール作成
   const createProfile = async () => {
@@ -131,6 +139,12 @@ export default function HomePage() {
       <h1 className="text-2xl font-bold mb-2">
         GoalLog
       </h1>
+      <button
+        onClick={logout}
+        className="text-sm text-red-500"
+      >
+        ログアウト
+      </button>
 
       <Link href="/group">
         <button className="mb-6 text-blue-600 font-semibold">
@@ -163,6 +177,17 @@ export default function HomePage() {
                 status={goal.status}
               />
             )
+          )}
+          {myGoals.length < 3 ? (
+            <Link href="/goal">
+              <button className="w-full mt-6 bg-blue-500 text-white py-3 rounded-lg">
+                ＋目標を追加
+              </button>
+            </Link>
+          ) : (
+            <p className="mt-6 text-center text-gray-500">
+              今日の目標は登録済みです！
+            </p>
           )}
 
         </div>
