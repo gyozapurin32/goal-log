@@ -6,16 +6,48 @@ import { STATUS } from "@/lib/status";
 
 export default function GoalPage() {
   const saveGoals = async () => {
-    const data = goals
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("ログインしてください");
+      return;
+    }
+    const today = new Date().toISOString().split("T")[0];
+
+    const { count, error: countError } = await supabase
+      .from("goals")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("goal_date", today);
+
+    if (countError) {
+      alert("登録数の確認に失敗しました");
+      console.error(countError);
+      return;
+    }
+    if ((count ?? 0) >= 3) {
+      alert("今日はすでに3件登録しています！");
+      return;
+    }
+    const insertData = goals
       .filter((goal) => goal.trim() !== "")
       .map((goal, index) => ({
+        user_id: user.id,
         goal_text: goal,
         status: STATUS.NOT_STARTED,
         display_order: index + 1,
+        goal_date: new Date().toISOString().split("T")[0],
       }));
+    if ((count ?? 0) + insertData.length > 3) {
+      alert("1日に登録できる目標は3件までです。");
+      return;
+    }
 
-    const { error } = await supabase.from("goals").insert(data);
+    const { error } = await supabase.from("goals").insert(insertData);
 
+    console.log(error);
     if (error) {
       alert("保存に失敗しました");
       console.error(error);
@@ -23,6 +55,7 @@ export default function GoalPage() {
     }
 
     alert("保存しました！");
+    router.push("/home");
   };
   const [goals, setGoals] = useState([""]);
   return (
