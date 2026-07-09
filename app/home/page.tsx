@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import GoalCard from "@/components/goal/GoalCard";
+import { useRouter } from "next/navigation";
 type Goal = {
   id: string;
   goal_text: string;
@@ -13,6 +14,7 @@ type Goal = {
 export default function HomePage() {
   const [groupName, setGroupName] = useState("");
   const [goals, setGoals] = useState<Goal[]>([]);
+  const router = useRouter();
   const getUser = async () => {
     const {
       data: { user },
@@ -117,6 +119,24 @@ export default function HomePage() {
   useEffect(() => {
     const init = async () => {
       await createProfile();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("group_id")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.group_id) {
+        router.push("/group/setup");
+        return;
+      }
+
       await fetchGroup();
       await fetchGoals();
     };
