@@ -1,93 +1,91 @@
 "use client";
-import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import Link from "next/link";
+
+type Member = {
+  id: string;
+  display_name: string;
+};
 
 export default function GroupPage() {
-  const router = useRouter();
+  const [groupName, setGroupName] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [members, setMembers] = useState<Member[]>([]);
 
-  const createGroup = async () => {
-    if (groupName.trim() === "") {
-      alert("グループ名を入力してください");
-      return;
-    }
+  const fetchGroup = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      alert("ログインしてください");
-      return;
-    }
+    if (!user) return;
 
-    const inviteCode = createInviteCode();
-
-    const { data: group, error } = await supabase
-      .from("groups")
-      .insert({
-        name: groupName,
-        invite_code: inviteCode,
-        created_by: user.id,
-      })
-      .select()
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("group_id")
+      .eq("id", user.id)
       .single();
 
-    if (error) {
-      console.error(error);
-      alert("グループ作成に失敗しました");
-      return;
+    if (!profile?.group_id) return;
+
+    const { data: group } = await supabase
+      .from("groups")
+      .select("*")
+      .eq("id", profile.group_id)
+      .single();
+
+    if (group) {
+      setGroupName(group.name);
+      setInviteCode(group.invite_code);
     }
 
-    const { error: profileError } = await supabase
+    const { data } = await supabase
       .from("profiles")
-      .update({
-        group_id: group.id,
-      })
-      .eq("id", user.id);
+      .select("id, display_name")
+      .eq("group_id", profile.group_id);
 
-    if (profileError) {
-      console.error(profileError);
-      alert("プロフィール更新に失敗しました");
-      return;
+    if (data) {
+      setMembers(data);
     }
+  };
 
-    alert(`招待コード：${inviteCode}`);
-    router.push("/home");
-  };
-  const [groupName, setGroupName] = useState("");
-  const createInviteCode = () => {
-    return Math.random()
-      .toString(36)
-      .substring(2, 8)
-      .toUpperCase();
-  };
+  useEffect(() => {
+    fetchGroup();
+  }, []);
 
   return (
     <main className="max-w-md mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">
-        グループ作成
+      <h1 className="text-2xl font-bold">
+        {groupName}
       </h1>
 
-      <label className="block mb-2 font-semibold">
-        グループ名
-      </label>
+      <p className="mt-3">
+        招待コード
+      </p>
 
-      <input
-        type="text"
-        value={groupName}
-        maxLength={20}
-        onChange={(e) => setGroupName(e.target.value)}
-        className="border rounded w-full p-3"
-      />
+      <div className="border rounded p-3 font-bold text-center text-lg">
+        {inviteCode}
+      </div>
 
+      <h2 className="mt-8 mb-3 font-semibold">
+        メンバー
+      </h2>
 
-      <button
-        onClick={createGroup}
-        className="w-full mt-6 bg-blue-500 text-white py-3 rounded-lg"
-      >
-        作成する
-      </button>
+      {members.map((member) => (
+        <div
+          key={member.id}
+          className="border rounded-lg p-4 mb-3"
+        >
+          👤 {member.display_name}
+        </div>
+      ))}
+
+      <Link href="/home">
+        <button className="w-full mt-6 bg-gray-300 py-3 rounded-lg">
+          ホームへ戻る
+        </button>
+      </Link>
     </main>
   );
 }

@@ -11,6 +11,7 @@ type Goal = {
   display_order: number;
 };
 export default function HomePage() {
+  const [groupName, setGroupName] = useState("");
   const [goals, setGoals] = useState<Goal[]>([]);
   const getUser = async () => {
     const {
@@ -86,9 +87,37 @@ export default function HomePage() {
 
     setGoals(data);
   };
+  const fetchGroup = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    // 自分のプロフィール取得
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("group_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile?.group_id) return;
+
+    // グループ名取得
+    const { data: group } = await supabase
+      .from("groups")
+      .select("name")
+      .eq("id", profile.group_id)
+      .single();
+
+    if (group) {
+      setGroupName(group.name);
+    }
+  };
   useEffect(() => {
     const init = async () => {
       await createProfile();
+      await fetchGroup();
       await fetchGoals();
     };
 
@@ -100,7 +129,7 @@ export default function HomePage() {
 
       <Link href="/group">
         <button className="mb-6 text-blue-600 font-semibold">
-          チームA
+          {groupName}
         </button>
       </Link>
       {goals.map((goal) => (

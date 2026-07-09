@@ -5,6 +5,7 @@ import { useState } from "react";
 import { STATUS } from "@/lib/status";
 
 export default function GoalPage() {
+
   const saveGoals = async () => {
     const {
       data: { user },
