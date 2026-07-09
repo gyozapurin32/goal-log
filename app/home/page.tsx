@@ -195,8 +195,19 @@ export default function HomePage() {
               : "bg-white"
               }`}
           >
-            <h2 className="font-bold text-lg mb-3">
-              👤 {member.display_name}
+            <h2 className="font-bold text-lg mb-3 flex items-center gap-2">
+              {member.id === userId ? (
+                <Link
+                  href="/profile"
+                  className="hover:text-blue-600 hover:underline"
+                >
+                  👤 {member.display_name}
+                </Link>
+              ) : (
+                <span>👤 {member.display_name}</span>
+              )}
+
+              
             </h2>
 
 

@@ -1,10 +1,13 @@
 "use client";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { STATUS } from "@/lib/status";
 import { useRouter } from "next/navigation";
-
+type Goal = {
+  id: string;
+  goal_text: string;
+};
 export default function GoalPage() {
   const router = useRouter();
 
@@ -62,16 +65,56 @@ export default function GoalPage() {
   };
   const [existingGoals, setExistingGoals] = useState<Goal[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
+  const remainingCount = 3 - existingGoals.length - goals.length;
+
+  const fetchExistingGoals = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data, error } = await supabase
+      .from("goals")
+      .select("id, goal_text")
+      .eq("user_id", user.id)
+      .eq("goal_date", today)
+      .order("display_order");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setExistingGoals(data ?? []);
+    setGoals(data && data.length < 3 ? [""] : []);
+  };
+
+  useEffect(() => {
+    fetchExistingGoals();
+  }, []);
   return (
     <main className="p-6">
 
       <h1 className="text-2xl font-bold">
         目標登録画面
       </h1>
+      {existingGoals.length > 0 && (
+        <div className="mt-4">
+          <h2 className="font-semibold mb-2">登録済みの目標</h2>
+          {existingGoals.map((goal) => (
+            <div key={goal.id} className="border rounded p-2 mb-2 bg-gray-100">
+              {goal.goal_text}
+            </div>
+          ))}
+        </div>
+      )}
       {goals.map((goal, index) => (
         <div key={index} className="mt-4">
           <label className="block mb-1 font-semibold">
-            目標{index + 1}
+            追加{index + 1}
           </label>
 
           <input
@@ -88,7 +131,7 @@ export default function GoalPage() {
 
         </div>
       ))}
-      {goals.length < 3 && (
+      {3 - existingGoals.length - goals.length > 0 && (
         <button
           className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
           onClick={() => {
@@ -99,7 +142,7 @@ export default function GoalPage() {
         </button>
       )}
       <p className="mt-2 text-gray-500">
-        残り{3 - goals.length}件登録できます
+        残り{3 - existingGoals.length - goals.length}件登録できます
       </p>
       <button
         onClick={saveGoals}
