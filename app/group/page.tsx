@@ -13,6 +13,7 @@ export default function GroupPage() {
   const [groupName, setGroupName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
+  const [userId, setUserId] = useState("");
 
   const fetchGroup = async () => {
     const {
@@ -20,6 +21,8 @@ export default function GroupPage() {
     } = await supabase.auth.getUser();
 
     if (!user) return;
+
+    setUserId(user.id);
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -75,9 +78,21 @@ export default function GroupPage() {
       {members.map((member) => (
         <div
           key={member.id}
-          className="border rounded-lg p-4 mb-3"
+          className="border rounded-lg p-4 mt-3"
         >
-          👤 {member.display_name}
+          {member.id === userId ? (
+            <Link
+              href="/profile"
+              className="flex items-center justify-between font-semibold hover:text-blue-600"
+            >
+              <span>👤 {member.display_name}</span>
+              <span className="text-gray-400">›</span>
+            </Link>
+          ) : (
+            <span className="font-semibold">
+              👤 {member.display_name}
+            </span>
+          )}
         </div>
       ))}
 

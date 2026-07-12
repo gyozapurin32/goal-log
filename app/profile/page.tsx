@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 export default function ProfilePage() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
+  const [isExistingProfile, setIsExistingProfile] = useState(false);
 
   const fetchProfile = async () => {
     const {
@@ -22,11 +23,16 @@ export default function ProfilePage() {
       .from("profiles")
       .select("display_name")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error(error);
       return;
+    }
+
+    if (data) {
+      setDisplayName(data.display_name);
+      setIsExistingProfile(true);
     }
 
     setDisplayName(data.display_name);
@@ -44,12 +50,23 @@ export default function ProfilePage() {
 
     if (!user) return;
 
-    const { error } = await supabase
+    const { data: existingProfile } = await supabase
       .from("profiles")
-      .update({
-        display_name: displayName,
-      })
-      .eq("id", user.id);
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const { error } = existingProfile
+      ? await supabase
+        .from("profiles")
+        .update({ display_name: displayName })
+        .eq("id", user.id)
+      : await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          display_name: displayName,
+        });
 
     if (error) {
       alert("保存に失敗しました");
@@ -57,8 +74,11 @@ export default function ProfilePage() {
       return;
     }
 
-    alert("ユーザー名を保存しました");
-    router.push("/home");
+    if (isExistingProfile) {
+      router.push("/home");
+    } else {
+      router.push("/group/setup");
+    }
   };
 
   useEffect(() => {

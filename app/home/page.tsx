@@ -3,8 +3,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import GoalCard from "@/components/goal/GoalCard";
 import { useRouter } from "next/navigation";
+
+
+type Post = {
+  id: string;
+  post_type: "start" | "finish";
+  photo_url: string;
+  created_at: string;
+};
 
 type Goal = {
   id: string;
@@ -12,6 +19,7 @@ type Goal = {
   status: string;
   goal_date: string;
   display_order: number;
+  posts: Post[];
 };
 
 type Member = {
@@ -33,6 +41,25 @@ export default function HomePage() {
   const [userId, setUserId] = useState("");
   const myGoals =
     members.find((member) => member.id === userId)?.goals ?? [];
+  const todayLabel = new Intl.DateTimeFormat("ja-JP", {
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  }).format(new Date());
+
+  const totalGoalCount = members.reduce(
+    (total, member) => total + member.goals.length,
+    0
+  );
+
+  const completedGoalCount = members.reduce(
+    (total, member) =>
+      total +
+      member.goals.filter((goal) =>
+        goal.posts.some((post) => post.post_type === "finish")
+      ).length,
+    0
+  );
 
 
   // 初回だけプロフィール作成
@@ -41,7 +68,7 @@ export default function HomePage() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return;
+    if (!user) return false;
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -49,15 +76,12 @@ export default function HomePage() {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (profile) return;
+    if (!profile) {
+      router.push("/profile");
+      return false;
+    }
 
-    await supabase.from("profiles").insert({
-      id: user.id,
-      display_name:
-        user.user_metadata.full_name ??
-        user.user_metadata.name ??
-        "ユーザー",
-    });
+    return true;
   };
 
   const fetchHome = async () => {
@@ -104,7 +128,13 @@ export default function HomePage() {
       goal_text,
       status,
       goal_date,
-      display_order
+      display_order,
+      posts(
+      id,
+      post_type,
+      photo_url,
+      created_at
+      )
     )
   `)
       .eq("group_id", profile.group_id);
@@ -133,32 +163,15 @@ export default function HomePage() {
   }
   useEffect(() => {
     const init = async () => {
-      await createProfile();
+      const hasProfile = await createProfile();
+
+      if (!hasProfile) return;
+
       await fetchHome();
     };
 
     init();
-
-    const channel = supabase
-      .channel("goals-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "goals",
-        },
-        () => {
-          fetchHome();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
-
   return (
     <main className="min-h-screen bg-gray-100">
       <div className="max-w-md mx-auto p-6">
@@ -176,83 +189,145 @@ export default function HomePage() {
         </div>
 
         <Link href="/group">
-          <div className="bg-white rounded-xl shadow p-4 mb-6 cursor-pointer hover:bg-gray-50">
+          <div className="mb-6 cursor-pointer rounded-xl bg-white p-4 shadow hover:bg-gray-50">
             <p className="text-sm text-gray-500">
-              あなたのグループ
+              {todayLabel}
             </p>
 
-            <p className="text-lg font-bold">
-              🏆 {groupName}
-            </p>
+            <div className="mt-1 flex items-end justify-between">
+              <p className="text-lg font-bold">
+                🏆 {groupName}
+              </p>
+
+              <p className="text-sm font-semibold text-gray-600">
+                {totalGoalCount === 0
+                  ? "まだ目標はありません"
+                  : `${completedGoalCount} / ${totalGoalCount} 完了`}
+              </p>
+            </div>
           </div>
         </Link>
 
-        {members.map((member) => (
-          <div
-            key={member.id}
-            className={`rounded-xl shadow p-4 mb-6 border ${member.id === userId
-              ? "bg-blue-50 border-blue-300"
-              : "bg-white"
-              }`}
-          >
-            <h2 className="font-bold text-lg mb-3 flex items-center gap-2">
-              {member.id === userId ? (
-                <Link
-                  href="/profile"
-                  className="hover:text-blue-600 hover:underline"
-                >
-                  👤 {member.display_name}
-                </Link>
-              ) : (
-                <span>👤 {member.display_name}</span>
-              )}
-
-              
-            </h2>
-
-
-            {member.goals.length === 0 ? (
-              <p className="text-gray-400 text-sm">
-                今日はまだ目標を登録していません
-              </p>
-            ) : (
-              member.goals.map((goal) =>
-                member.id === userId ? (
-                  <Link key={goal.id} href={`/status?id=${goal.id}`}>
-                    <GoalCard
-                      title={goal.goal_text}
-                      status={goal.status}
-                    />
+        <div className="space-y-6">
+          {members.map((member) => (
+            <section
+              key={member.id}
+              className={`rounded-2xl border p-4 shadow-sm ${member.id === userId
+                ? "border-blue-300 bg-blue-50"
+                : "border-gray-200 bg-white"
+                }`}
+            >
+              <div className="mb-4 flex items-center gap-2">
+                {member.id === userId ? (
+                  <Link
+                    href="/profile"
+                    className="text-lg font-bold hover:text-blue-600"
+                  >
+                    👤 {member.display_name}
                   </Link>
                 ) : (
-                  <GoalCard
-                    key={goal.id}
-                    title={goal.goal_text}
-                    status={goal.status}
-                  />
-                )
-              )
-            )}
-            {member.id === userId && (
-              myGoals.length < 3 ? (
-                <Link href="/goal">
-                  <button className="w-full mt-4 bg-blue-500 text-white py-3 rounded-lg">
-                    ＋目標を追加
-                  </button>
-                </Link>
-              ) : (
-                <p className="mt-4 text-center text-gray-500 text-sm">
-                  今日の目標は登録済みです！
-                </p>
-              )
-            )}
+                  <h2 className="text-lg font-bold">
+                    👤 {member.display_name}
+                  </h2>
+                )}
 
 
-          </div>
-        ))}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {member.goals.map((goal) => {
+                  const startPost = goal.posts.find(
+                    (post) => post.post_type === "start"
+                  );
+
+                  const finishPost = goal.posts.find(
+                    (post) => post.post_type === "finish"
+                  );
+
+                  const latestPost = finishPost ?? startPost;
+
+                  return (
+                    <div
+                      key={goal.id}
+                      className="aspect-square min-w-0 overflow-hidden rounded-xl border bg-white shadow-sm"
+                    >
+                      {latestPost ? (
+                        <div className="relative h-full">
+                          <img
+                            src={latestPost.photo_url}
+                            alt={goal.goal_text}
+                            className="h-full w-full object-cover"
+                          />
+
+                          <div className="absolute inset-x-0 bottom-0 bg-black/60 p-2 text-white">
+                            <p className="truncate text-xs font-semibold">
+                              {goal.goal_text}
+                            </p>
+
+                            <p className="text-[11px]">
+                              {finishPost ? "完了" : "進行中"}
+                            </p>
+
+                            {member.id === userId && startPost && !finishPost && (
+                              <Link
+                                href={`/post?goalId=${goal.id}&type=finish`}
+                                className="mt-2 block rounded-full bg-green-500 px-2 py-1 text-center text-[11px] font-semibold text-white"
+                              >
+                                完了を記録
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center p-2 text-center">
+                          <p className="line-clamp-3 text-xs font-semibold">
+                            {goal.goal_text}
+                          </p>
+
+                          {member.id === userId && (
+                            <Link
+                              href={`/post?goalId=${goal.id}&type=start`}
+                              className="mt-2 rounded-full bg-blue-500 px-2 py-1 text-[11px] text-white"
+                            >
+                              始める
+                            </Link>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {member.id === userId &&
+                  Array.from({ length: 3 - member.goals.length }).map((_, index) => (
+                    <Link
+                      key={`empty-${index}`}
+                      href="/goal"
+                      className="aspect-square min-w-0"
+                    >
+                      <div className="flex h-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 p-2 text-center">
+                        <span className="text-2xl text-blue-500">＋</span>
+                        <span className="mt-1 text-[11px] font-semibold text-blue-600">
+                          目標を追加
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+
+                {member.id !== userId && member.goals.length === 0 && (
+                  <div className="col-span-3 py-4 text-sm text-gray-400">
+                    今日はまだ目標を登録していません
+                  </div>
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
+
+      </div>
 
 
-      </div >
+
     </main>
   );
 }
