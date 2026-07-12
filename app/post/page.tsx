@@ -14,6 +14,7 @@ export default function PostPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [comment, setComment] = useState("")
 
   const selectPhoto = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -81,6 +82,7 @@ export default function PostPage() {
         user_id: user.id,
         post_type: postType,
         photo_url: publicUrlData.publicUrl,
+        comment: comment.trim() || null,
       });
 
     if (postError) {
@@ -120,6 +122,7 @@ export default function PostPage() {
             )}
           </div>
 
+
           <input
             type="file"
             accept="image/*"
@@ -128,6 +131,20 @@ export default function PostPage() {
             className="hidden"
           />
         </label>
+        <textarea
+          value={comment}
+          maxLength={40}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder={
+            postType === "start"
+              ? "例：ジム行ってきます"
+              : "例：終わった！むきむき"
+          }
+          className="mt-4 w-full rounded-lg border p-3"
+        />
+        <p className="mt-1 text-right text-xs text-gray-400">
+          {comment.length}/40
+        </p>
 
         <button
           type="button"

@@ -1,9 +1,10 @@
 "use client";
 import { supabase } from "@/lib/supabase";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { STATUS } from "@/lib/status";
 import { useRouter } from "next/navigation";
+import { getGoalDate } from "@/lib/goalDate";
+
 type Goal = {
   id: string;
   goal_text: string;
@@ -20,8 +21,7 @@ export default function GoalPage() {
       alert("ログインしてください");
       return;
     }
-    const today = new Date().toISOString().split("T")[0];
-
+    const today = getGoalDate();
     const { count, error: countError } = await supabase
       .from("goals")
       .select("*", { count: "exact", head: true })
@@ -44,7 +44,7 @@ export default function GoalPage() {
         goal_text: goal,
         status: STATUS.NOT_STARTED,
         display_order: index + 1,
-        goal_date: new Date().toISOString().split("T")[0],
+        goal_date: today,
       }));
     if ((count ?? 0) + insertData.length > 3) {
       alert("1日に登録できる目標は3件までです。");
@@ -74,8 +74,8 @@ export default function GoalPage() {
 
     if (!user) return;
 
-    const today = new Date().toISOString().split("T")[0];
 
+    const today = getGoalDate();
     const { data, error } = await supabase
       .from("goals")
       .select("id, goal_text")

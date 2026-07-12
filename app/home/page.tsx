@@ -4,29 +4,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
-
-type Post = {
-  id: string;
-  post_type: "start" | "finish";
-  photo_url: string;
-  created_at: string;
-};
-
-type Goal = {
-  id: string;
-  goal_text: string;
-  status: string;
-  goal_date: string;
-  display_order: number;
-  posts: Post[];
-};
-
-type Member = {
-  id: string;
-  display_name: string;
-  goals: Goal[];
-};
+import MemberBoard from "@/components/home/MemberBoard";
+import { Goal, Post, Member } from "@/lob/types";
 
 export default function HomePage() {
   const logout = async () => {
@@ -133,6 +112,7 @@ export default function HomePage() {
       id,
       post_type,
       photo_url,
+      comment,
       created_at
       )
     )
@@ -208,121 +188,13 @@ export default function HomePage() {
           </div>
         </Link>
 
-        <div className="space-y-6">
-          {members.map((member) => (
-            <section
-              key={member.id}
-              className={`rounded-2xl border p-4 shadow-sm ${member.id === userId
-                ? "border-blue-300 bg-blue-50"
-                : "border-gray-200 bg-white"
-                }`}
-            >
-              <div className="mb-4 flex items-center gap-2">
-                {member.id === userId ? (
-                  <Link
-                    href="/profile"
-                    className="text-lg font-bold hover:text-blue-600"
-                  >
-                    👤 {member.display_name}
-                  </Link>
-                ) : (
-                  <h2 className="text-lg font-bold">
-                    👤 {member.display_name}
-                  </h2>
-                )}
+        <MemberBoard
+          members={members}
+          userId={userId}
+          showEmptyGoalTiles
+        />
+        
 
-
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                {member.goals.map((goal) => {
-                  const startPost = goal.posts.find(
-                    (post) => post.post_type === "start"
-                  );
-
-                  const finishPost = goal.posts.find(
-                    (post) => post.post_type === "finish"
-                  );
-
-                  const latestPost = finishPost ?? startPost;
-
-                  return (
-                    <div
-                      key={goal.id}
-                      className="aspect-square min-w-0 overflow-hidden rounded-xl border bg-white shadow-sm"
-                    >
-                      {latestPost ? (
-                        <div className="relative h-full">
-                          <img
-                            src={latestPost.photo_url}
-                            alt={goal.goal_text}
-                            className="h-full w-full object-cover"
-                          />
-
-                          <div className="absolute inset-x-0 bottom-0 bg-black/60 p-2 text-white">
-                            <p className="truncate text-xs font-semibold">
-                              {goal.goal_text}
-                            </p>
-
-                            <p className="text-[11px]">
-                              {finishPost ? "完了" : "進行中"}
-                            </p>
-
-                            {member.id === userId && startPost && !finishPost && (
-                              <Link
-                                href={`/post?goalId=${goal.id}&type=finish`}
-                                className="mt-2 block rounded-full bg-green-500 px-2 py-1 text-center text-[11px] font-semibold text-white"
-                              >
-                                完了を記録
-                              </Link>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex h-full flex-col items-center justify-center p-2 text-center">
-                          <p className="line-clamp-3 text-xs font-semibold">
-                            {goal.goal_text}
-                          </p>
-
-                          {member.id === userId && (
-                            <Link
-                              href={`/post?goalId=${goal.id}&type=start`}
-                              className="mt-2 rounded-full bg-blue-500 px-2 py-1 text-[11px] text-white"
-                            >
-                              始める
-                            </Link>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {member.id === userId &&
-                  Array.from({ length: 3 - member.goals.length }).map((_, index) => (
-                    <Link
-                      key={`empty-${index}`}
-                      href="/goal"
-                      className="aspect-square min-w-0"
-                    >
-                      <div className="flex h-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 p-2 text-center">
-                        <span className="text-2xl text-blue-500">＋</span>
-                        <span className="mt-1 text-[11px] font-semibold text-blue-600">
-                          目標を追加
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-
-                {member.id !== userId && member.goals.length === 0 && (
-                  <div className="col-span-3 py-4 text-sm text-gray-400">
-                    今日はまだ目標を登録していません
-                  </div>
-                )}
-              </div>
-            </section>
-          ))}
-        </div>
 
       </div>
 
