@@ -38,17 +38,17 @@ export default function MemberBoard({
   showEmptyGoalTiles = false,
 }: MemberBoardProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {members.map((member) => (
         <section
           key={member.id}
-          className={`rounded-2xl border p-4 shadow-sm ${
+          className={`rounded-2xl border p-3 shadow-sm ${
             member.id === userId && !readonly
               ? "border-blue-300 bg-blue-50"
               : "border-gray-200 bg-white"
           }`}
         >
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-4 flex items-center gap-1">
             {member.id === userId && !readonly ? (
               <Link
                 href="/profile"
@@ -57,13 +57,13 @@ export default function MemberBoard({
                  {member.display_name}
               </Link>
             ) : (
-              <h2 className="text-lg font-bold">
+              <h2 className="text-sm font-semibold">
                  {member.display_name}
               </h2>
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1">
             {member.goals.map((goal) => {
               const startPost = goal.posts.find(
                 (post) => post.post_type === "start"
@@ -78,7 +78,7 @@ export default function MemberBoard({
               return (
                 <div
                   key={goal.id}
-                  className="aspect-square min-w-0 overflow-hidden rounded-xl border bg-white shadow-sm"
+                  className="aspect-square min-w-0 overflow-hidden rounded-lg border bg-white shadow-sm"
                 >
                   {latestPost ? (
                     <div className="relative h-full">
@@ -88,12 +88,10 @@ export default function MemberBoard({
                         className="h-full w-full object-cover"
                       />
 
-                      <div className="absolute inset-x-0 bottom-0 bg-black/60 p-2 text-white">
+                      <div className="absolute bottom-2 left-2 right-2 text-white">
                         <p className="truncate text-xs font-semibold">
                           {goal.goal_text}
                         </p>
-
-                    
 
                         {latestPost.comment && (
                           <p className="mt-1 truncate text-[10px]">
@@ -145,7 +143,7 @@ export default function MemberBoard({
                   href="/goal"
                   className="aspect-square min-w-0"
                 >
-                  <div className="flex h-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 p-2 text-center">
+                  <div className="flex h-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 p-2 text-center">
                     <span className="text-2xl text-blue-500">＋</span>
                     <span className="mt-1 text-[11px] font-semibold text-blue-600">
                       目標を追加
