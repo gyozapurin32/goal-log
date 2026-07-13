@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import MemberBoard from "@/components/home/MemberBoard";
-import { Goal, Post, Member } from "@/lob/types";
+import type { Member } from "@/lib/types";
 
 export default function HomePage() {
   const logout = async () => {

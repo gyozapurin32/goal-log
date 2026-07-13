@@ -25,7 +25,7 @@ export default function ProfilePage() {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (error) {
+    if (error || !data) {
       console.error(error);
       return;
     }

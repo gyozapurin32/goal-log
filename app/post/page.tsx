@@ -1,10 +1,26 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function PostPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gray-100">
+          <div className="max-w-md mx-auto p-6">
+            <p>読み込み中...</p>
+          </div>
+        </main>
+      }
+    >
+      <PostContent />
+    </Suspense>
+  );
+}
+
+function PostContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -14,7 +30,7 @@ export default function PostPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [comment, setComment] = useState("")
+  const [comment, setComment] = useState("");
 
   const selectPhoto = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -54,6 +70,7 @@ export default function PostPage() {
     }
 
     const fileExtension = file.name.split(".").pop() ?? "jpg";
+
     const filePath =
       `${user.id}/${goalId}/${postType}-${crypto.randomUUID()}.${fileExtension}`;
 
@@ -92,7 +109,12 @@ export default function PostPage() {
       return;
     }
 
-    alert(postType === "start" ? "今から！を投稿しました" : "終わった！を投稿しました");
+    alert(
+      postType === "start"
+        ? "今から！を投稿しました"
+        : "終わった！を投稿しました"
+    );
+
     router.push("/home");
   };
 
@@ -122,7 +144,6 @@ export default function PostPage() {
             )}
           </div>
 
-
           <input
             type="file"
             accept="image/*"
@@ -131,6 +152,7 @@ export default function PostPage() {
             className="hidden"
           />
         </label>
+
         <textarea
           value={comment}
           maxLength={40}
@@ -142,6 +164,7 @@ export default function PostPage() {
           }
           className="mt-4 w-full rounded-lg border p-3"
         />
+
         <p className="mt-1 text-right text-xs text-gray-400">
           {comment.length}/40
         </p>
