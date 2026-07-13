@@ -93,9 +93,7 @@ export default function MemberBoard({
                           {goal.goal_text}
                         </p>
 
-                        <p className="text-[11px]">
-                          {finishPost ? "終わった！" : "今から！"}
-                        </p>
+                    
 
                         {latestPost.comment && (
                           <p className="mt-1 truncate text-[10px]">
