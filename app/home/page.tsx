@@ -176,7 +176,7 @@ export default function HomePage() {
 
             <div className="mt-1 flex items-end justify-between">
               <p className="text-lg font-bold">
-                🏆 {groupName}
+                 {groupName}
               </p>
 
               <p className="text-sm font-semibold text-gray-600">

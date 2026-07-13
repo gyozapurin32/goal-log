@@ -54,11 +54,11 @@ export default function MemberBoard({
                 href="/profile"
                 className="text-lg font-bold hover:text-blue-600"
               >
-                👤 {member.display_name}
+                 {member.display_name}
               </Link>
             ) : (
               <h2 className="text-lg font-bold">
-                👤 {member.display_name}
+                 {member.display_name}
               </h2>
             )}
           </div>
