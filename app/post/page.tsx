@@ -1,10 +1,10 @@
 "use client";
 
-import { ChangeEvent, Suspense, useState } from "react";
+import { ChangeEvent, Suspense, useState, useEffect, } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-
 export default function PostPage() {
+
   return (
     <Suspense
       fallback={
@@ -25,12 +25,33 @@ function PostContent() {
   const searchParams = useSearchParams();
 
   const goalId = searchParams.get("goalId");
+  const [goalText, setGoalText] = useState("");
   const postType = searchParams.get("type");
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [comment, setComment] = useState("");
+  const fetchGoal = async () => {
+    if (!goalId) return;
+
+    const { data, error } = await supabase
+      .from("goals")
+      .select("goal_text")
+      .eq("id", goalId)
+      .single();
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setGoalText(data.goal_text);
+  };
+
+  useEffect(() => {
+    fetchGoal();
+  }, [goalId]);
 
   const selectPhoto = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -124,6 +145,15 @@ function PostContent() {
         <h1 className="text-2xl font-bold">
           {postType === "finish" ? "終わった！" : "今から！"}
         </h1>
+        <div className="mt-4 rounded-xl bg-white p-4 shadow">
+          <p className="text-xs text-gray-500">
+            今日の目標
+          </p>
+
+          <p className="mt-1 text-lg font-bold">
+            🎯 {goalText}
+          </p>
+        </div>
 
         <p className="mt-2 text-gray-500">
           写真を撮るか、スマホから選択してください
