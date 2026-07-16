@@ -106,7 +106,7 @@ export default function MemberBoard({
 
                         <div className="absolute bottom-2 left-2 right-2 text-white"
                           style={{
-                            textShadow: "0 1px 6px rgba(0,0,0,0,9)",
+                            textShadow: "0 1px 6px rgba(0,0,0,0.9)",
                           }}>
                           <p className="truncate text-xs font-semibold">
                             {goal.goal_text}
@@ -144,8 +144,8 @@ export default function MemberBoard({
                 }
 
                 const href = startPost
-                  ? `/post?goalId=${goal.id}$type=finish`
-                  : `/post?goalId=${goal.id}$type=start`;
+                  ? `/post?goalId=${goal.id}&type=finish`
+                  : `/post?goalId=${goal.id}&type=start`;
 
                 return (
                   <Link key={goal.id} href={href} className="block">
