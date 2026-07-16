@@ -144,8 +144,8 @@ export default function MemberBoard({
                 }
 
                 const href = startPost
-                  ? `/post?goalId=&{goal.id}&type=finish`
-                  : `/post?goalId=&{goal.id}&type=start`;
+                  ? `/post?goalId=${goal.id}$type=finish`
+                  : `/post?goalId=${goal.id}$type=start`;
 
                 return (
                   <Link key={goal.id} href={href} className="block">
